@@ -1,0 +1,23 @@
+{
+  "name": "vue-app",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "vite serve --open",
+    "start": "vite serve --host 0.0.0.0",
+    "build": "vite build",
+    "build-start": "vite build --watch",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "pinia": "^2.0.13",
+    "three": "^0.142.0",
+    "vue": "^3.2.25",
+    "vue-router": "^4.0.14"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^2.3.1",
+    "sass": "^1.51.0",
+    "vite": "^2.9.5"
+  }
+}
