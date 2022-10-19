@@ -3,7 +3,7 @@ import {
     createWebHashHistory
 } from "vue-router"
 
-import Page1 from '../pages/page1.vue'
+import Page1 from '../pages/page1/page1.vue'
 
 const routes = [{
         path: '/',
@@ -13,7 +13,7 @@ const routes = [{
     {
         path: '/page2',
         name: 'Page2',
-        component: () => import('../pages/page2.vue')
+        component: () => import('../pages/page2/page2.vue')
     },
     {
         path: '/:catchAll(.*)', //如果没有匹配项, 匹配所有路径 vue2 使用 * ；vue3 使用 `/:pathMatch(.*)* ` 或者 `/:pathMatch(.*)` 或者 `/:catchAll(.*)`

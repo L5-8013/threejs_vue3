@@ -6,11 +6,11 @@
 </template>
 
 <style lang="scss">
+*{
+  margin: 0;
+  padding: 0;
+}
 #app {
-  .main {
-    width: 108px;
-    margin: 0 auto;
-    text-align: center;
-  }
+  
 }
 </style>
