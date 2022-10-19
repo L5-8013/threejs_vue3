@@ -2,6 +2,7 @@ import * as THREE from "three";
 
 export default class ThreeJs {
   constructor(item) {
+   
     this.init(item);
   }
   init(item) {

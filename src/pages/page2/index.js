@@ -5,7 +5,9 @@ import {
 import {
     FirstPersonControls
 } from 'three/examples/jsm/controls/FirstPersonControls.js';
-
+import {
+    GLTFLoader
+} from 'three/examples/jsm/loaders/GLTFLoader.js'
 
 export default class ThreeJs {
     constructor(item) {
@@ -13,6 +15,7 @@ export default class ThreeJs {
     }
 
     init(item) {
+        this.geometrys=[];
         this.scene = new THREE.Scene();
         this.clock = new THREE.Clock();
         this.setCamera();
@@ -20,7 +23,9 @@ export default class ThreeJs {
         this.setGrass();
         this.setHouse();
         this.setLight();
+        this.setOther();
         this.setControls();
+        this.setClick(item);
         this.render();
     }
     // 新建透视相机
@@ -105,11 +110,23 @@ export default class ThreeJs {
         object.position.x = 40;
         object.position.z = 80;
         object.position.y = 20;
-        this.house.add(object);
+        object.name = '完美'
+        this.geometrys.push(object)
 
+        this.house.add(object);
 
         this.scene.add(this.house);
         this.scene.fog = new THREE.Fog(0xffffff, 10, 1500);
+    }
+    async setOther() {
+        const loader = new GLTFLoader()
+        loader.load(`obj/ironman/scene.gltf`, model => {
+            model.scene.children[0].scale.set(50, 50, 50)
+            model.scene.children[0].position.z = 10
+            model.scene.children[0].position.x = -30
+            // this.geometrys.push(model.scene.children[0])
+            this.scene.add(model.scene.children[0])
+        })
     }
     async createSideWall() {
         // 从一个或多个路径形状创建一个单面多边形几何模型
@@ -286,7 +303,8 @@ export default class ThreeJs {
     getTexture(url) {
         return new Promise((resolve, reject) => {
             //该步骤是异步的
-            new THREE.TextureLoader().load(new URL(url,import.meta.url), texture => {
+            new THREE.TextureLoader().load(new URL(url,
+                import.meta.url), texture => {
                 resolve && resolve(texture);
             });
         })
@@ -323,6 +341,35 @@ export default class ThreeJs {
         // R	向上移动
         // F	向下移动
         // Q	停止
+    }
+    setClick(item) {
+        let _this=this;
+        let intersects = []; //几何体合集
+        const pointer = new THREE.Vector2();
+        let raycaster = new THREE.Raycaster();
+        let getBoundingClientRect = item.getBoundingClientRect()
+        document.addEventListener('click', function (event) {
+
+            pointer.x = ((event.clientX - getBoundingClientRect.left) / item.offsetWidth) * 2 - 1;
+            pointer.y = -((event.clientY - getBoundingClientRect.top) / item.offsetHeight) * 2 + 1;
+            // 这种情况是对全屏来计算的
+            // pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+            // pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(pointer, _this.camera);
+            //geometrys为需要监听的Mesh合集，可以通过这个集合来过滤掉不需要监听的元素例如地面天空
+            //true为不拾取子对象
+            intersects = raycaster.intersectObjects(_this.geometrys, true);
+            //被射线穿过的几何体为一个集合，越排在前面说明其位置离端点越近，所以直接取[0]
+            if (intersects.length > 0) {
+                //alert(intersects[0].object.name);
+                console.log(intersects[0].object);
+
+            } else {
+                //若没有几何体被监听到，可以做一些取消操作
+            }
+
+        },false);
+
     }
     render() {
         const delta = this.clock.getDelta() //获取自上次调用的时间差
