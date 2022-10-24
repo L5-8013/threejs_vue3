@@ -3,11 +3,15 @@ import {
     FBXLoader
 } from "three/examples/jsm/loaders/FBXLoader";
 import {
+    TextGeometry
+} from "three/examples/jsm/geometries/TextGeometry";
+import {
     FirstPersonControls
 } from 'three/examples/jsm/controls/FirstPersonControls.js';
 import {
     GLTFLoader
 } from 'three/examples/jsm/loaders/GLTFLoader.js'
+
 
 export default class ThreeJs {
     constructor(item) {
@@ -15,7 +19,7 @@ export default class ThreeJs {
     }
 
     init(item) {
-        this.geometrys=[];
+        this.geometrys = [];
         this.scene = new THREE.Scene();
         this.clock = new THREE.Clock();
         this.setCamera();
@@ -26,6 +30,7 @@ export default class ThreeJs {
         this.setOther();
         this.setControls();
         this.setClick(item);
+        this.setText();
         this.render();
     }
     // 新建透视相机
@@ -37,7 +42,8 @@ export default class ThreeJs {
             1000
         );
         // this.camera.position.z = 10;
-        this.camera.position.set(500, 60, 0)
+        // this.camera.position.set(500, 60, 0)
+        this.camera.position.set(0, 100, 200)
         this.camera.lookAt(this.scene.position);
     }
     setRenderer(item) {
@@ -47,8 +53,31 @@ export default class ThreeJs {
         item.appendChild(this.renderer.domElement);
     }
     setLight() {
+        // 环境光
         this.ambientLight = new THREE.AmbientLight(0xCCCCCC);
         this.scene.add(this.ambientLight);
+
+        //设置点光源位置，改变光源的位置
+        let point = new THREE.PointLight(0xffffff,5,0);
+        point.position.set(-50, 100, 100);
+        this.scene.add(point);
+        //点光源辅助器
+        var sphereSize = 5;
+        let pointLightHelper = new THREE.PointLightHelper( point, sphereSize );
+        this.scene.add(pointLightHelper);
+        
+
+    }
+    setHelper(){
+        // 法线  旧版叫 THREE.AxesHelper  新版叫THREE.AxisHelper()
+        var axisHelper = new THREE.AxesHelper( 500 );
+        this.scene.add( axisHelper );
+        // 网格线
+        let size = 20000;
+        let step = 10;
+
+        let gridHelper = new THREE.GridHelper( size, step );
+        this.scene.add( gridHelper );
     }
     async setGrass() {
         //创建平面模型
@@ -111,7 +140,7 @@ export default class ThreeJs {
         object.position.z = 80;
         object.position.y = 20;
         object.name = '完美'
-        this.geometrys.push(object)
+        // this.geometrys.push(object)
 
         this.house.add(object);
 
@@ -126,7 +155,7 @@ export default class ThreeJs {
             model.scene.children[0].position.x = -30
             // this.geometrys.push(model.scene.children[0])
             this.scene.add(model.scene.children[0])
-        })
+        });
     }
     async createSideWall() {
         // 从一个或多个路径形状创建一个单面多边形几何模型
@@ -321,8 +350,8 @@ export default class ThreeJs {
         //第一人称控件FirstPersonControls 可以实现使用键盘移动相机，使用鼠标控制视角
 
         this.firstPersonControls = new FirstPersonControls(this.camera, this.renderer.domElement);
-        this.firstPersonControls.lookSpeed = 0.05; //鼠标移动查看的速度
-        this.firstPersonControls.movementSpeed = 100; //相机移动速度
+        this.firstPersonControls.lookSpeed = 0.1; //鼠标移动查看的速度
+        this.firstPersonControls.movementSpeed = 200; //相机移动速度
         this.firstPersonControls.lookVertical = false;
         // this.firstPersonControls.noFly = true
         // this.firstPersonControls.constrainVertical = true //约束垂直
@@ -343,7 +372,7 @@ export default class ThreeJs {
         // Q	停止
     }
     setClick(item) {
-        let _this=this;
+        let _this = this;
         let intersects = []; //几何体合集
         const pointer = new THREE.Vector2();
         let raycaster = new THREE.Raycaster();
@@ -368,8 +397,33 @@ export default class ThreeJs {
                 //若没有几何体被监听到，可以做一些取消操作
             }
 
-        },false);
+        }, false);
 
+    }
+    setText() {
+
+        let canvas = document.createElement('canvas');
+        let ctx = canvas.getContext('2d');
+        ctx.fillStyle = "rgb(255,0,0)";
+        ctx.font = "bolder 16px Arial ";
+
+        ctx.fillText("小杜的房间", 0, 16);
+        ctx.globalAlpha = 1;
+
+        /// canvas画布对象作为CanvasTexture的参数重建一个纹理对象
+        // canvas画布可以理解为一张图片
+        let texture = new THREE.CanvasTexture(canvas);
+        let spriteMaterial = new THREE.SpriteMaterial({
+            map: texture, //设置精灵纹理贴图
+            transparent:true,//开启透明(纹理图片png有透明信息)
+        });
+
+        const sprite = new THREE.Sprite(spriteMaterial);
+        sprite.scale.set(100, 100, 1); 
+        this.geometrys.push(sprite)
+        sprite.position.x = 200;
+        sprite.position.y = 30;
+        this.scene.add(sprite);
     }
     render() {
         const delta = this.clock.getDelta() //获取自上次调用的时间差
