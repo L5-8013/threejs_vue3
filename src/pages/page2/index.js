@@ -11,7 +11,8 @@ import {
 import {
     GLTFLoader
 } from 'three/examples/jsm/loaders/GLTFLoader.js'
-
+//加载glb模型
+import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader";
 
 export default class ThreeJs {
     constructor(item) {
@@ -20,8 +21,20 @@ export default class ThreeJs {
 
     init(item) {
         this.geometrys = [];
+        this.stateList ={};
+        this.previousAction = null; // 当前动作
+        this.currentAction = null;// 传入动作
+        this.direction={};
+        this.moveSpeed=1;
+        this.cameraSpeed=0.01;
+        this.author=null;
+
+
+
+
         this.scene = new THREE.Scene();
         this.clock = new THREE.Clock();
+        this.raycaster = new THREE.Raycaster();
         this.setCamera();
         this.setRenderer(item);
         this.setGrass();
@@ -43,8 +56,8 @@ export default class ThreeJs {
         );
         // this.camera.position.z = 10;
         // this.camera.position.set(500, 60, 0)
-        this.camera.position.set(0, 100, 200)
-        this.camera.lookAt(this.scene.position);
+        this.camera.position.set(0, 50, 200)
+        // this.camera.lookAt(this.scene.position);
     }
     setRenderer(item) {
         this.renderer = new THREE.WebGLRenderer();
@@ -78,6 +91,7 @@ export default class ThreeJs {
 
         let gridHelper = new THREE.GridHelper( size, step );
         this.scene.add( gridHelper );
+
     }
     async setGrass() {
         //创建平面模型
@@ -149,13 +163,44 @@ export default class ThreeJs {
     }
     async setOther() {
         const loader = new GLTFLoader()
+        const dracoLoader = new DRACOLoader();
+        dracoLoader.setDecoderPath("./draco/"); // 设置public下的解码路径，注意最后面的/
+        dracoLoader.setDecoderConfig({ type: "js" });
+        dracoLoader.preload();
+        loader.setDRACOLoader(dracoLoader);
         loader.load(`obj/ironman/scene.gltf`, model => {
+            console.log('ironman',model)
             model.scene.children[0].scale.set(50, 50, 50)
             model.scene.children[0].position.z = 10
             model.scene.children[0].position.x = -30
             // this.geometrys.push(model.scene.children[0])
             this.scene.add(model.scene.children[0])
         });
+        loader.load('obj/man.glb',gltf =>{
+            console.log("man", gltf);
+            const model = gltf.scene;
+            this.mixer = new THREE.AnimationMixer(model);
+            
+            this.stateList.Standing = this.mixer.clipAction(gltf.animations[0]); // idle
+            this.stateList.Walking = this.mixer.clipAction(gltf.animations[15]); // walk
+            this.stateList.Jumping = this.mixer.clipAction(gltf.animations[3]); // run
+            this.stateList.TurnLeft = this.mixer.clipAction(gltf.animations[22]); // left
+            this.stateList.TurnRight = this.mixer.clipAction(gltf.animations[23]); // right
+
+
+            this.stateList.Standing.play()
+
+            this.currentAction = this.stateList.Standing;
+
+            model.name = "man";
+            // model.position.set(300, 0, 0);
+            model.scale.set(20, 20, 20);
+
+            this.author=model;
+            model.re
+            this.scene.add(model);
+            console.log(this.scene)
+        })
     }
     async createSideWall() {
         // 从一个或多个路径形状创建一个单面多边形几何模型
@@ -347,29 +392,58 @@ export default class ThreeJs {
         })
     }
     setControls() {
-        //第一人称控件FirstPersonControls 可以实现使用键盘移动相机，使用鼠标控制视角
+        // //第一人称控件FirstPersonControls 可以实现使用键盘移动相机，使用鼠标控制视角
+        // this.firstPersonControls = new FirstPersonControls(this.camera, this.renderer.domElement);
+        // this.firstPersonControls.lookSpeed = 0.1; //鼠标移动查看的速度
+        // this.firstPersonControls.movementSpeed = 200; //相机移动速度
+        // this.firstPersonControls.lookVertical = false;
+        // // this.firstPersonControls.noFly = true
+        // // this.firstPersonControls.constrainVertical = true //约束垂直
+        // // this.firstPersonControls.verticalMin = 1.0
+        // // this.firstPersonControls.verticalMax = 2.0
+        // // this.firstPersonControls.lon = -150 //进入初始视角x轴的角度
+        // // this.firstPersonControls.lat = 120 //初始视角进入后y轴的角度
 
-        this.firstPersonControls = new FirstPersonControls(this.camera, this.renderer.domElement);
-        this.firstPersonControls.lookSpeed = 0.1; //鼠标移动查看的速度
-        this.firstPersonControls.movementSpeed = 200; //相机移动速度
-        this.firstPersonControls.lookVertical = false;
-        // this.firstPersonControls.noFly = true
-        // this.firstPersonControls.constrainVertical = true //约束垂直
-        // this.firstPersonControls.verticalMin = 1.0
-        // this.firstPersonControls.verticalMax = 2.0
-        // this.firstPersonControls.lon = -150 //进入初始视角x轴的角度
-        // this.firstPersonControls.lat = 120 //初始视角进入后y轴的角度
+        // // 按键说明
+        // //移动鼠标	往四周看
+        // // 方向键	向对应方向移动
+        // // W	向前移动
+        // // S	向后移动
+        // // A	向左移动
+        // // D	向右移动
+        // // R	向上移动
+        // // F	向下移动
+        // // Q	停止
 
-        // 按键说明
-        //移动鼠标	往四周看
-        // 方向键	向对应方向移动
-        // W	向前移动
-        // S	向后移动
-        // A	向左移动
-        // D	向右移动
-        // R	向上移动
-        // F	向下移动
-        // Q	停止
+        // 自定义按键
+        const keyFun = (key,bool)=>{
+            switch(key){
+                case 87:
+                this.direction.top = bool
+                break
+                case 65:
+                this.direction.left = bool
+                break
+                case 83:
+                this.direction.down = bool
+                break
+                case 68:
+                this.direction.right = bool
+                break
+                case 69:
+                this.direction.cright = bool
+                break
+                case 81:
+                this.direction.cleft = bool
+                break
+            }
+        }
+        document.addEventListener("keydown", (event)=>{
+            keyFun(event.keyCode,true)
+        }, false);
+        document.addEventListener("keyup", (event)=>{
+            keyFun(event.keyCode,false)
+        }, false);
     }
     setClick(item) {
         let _this = this;
@@ -377,6 +451,7 @@ export default class ThreeJs {
         const pointer = new THREE.Vector2();
         let raycaster = new THREE.Raycaster();
         let getBoundingClientRect = item.getBoundingClientRect()
+        // console.log('相机',this.camera.matrixWorld)
         document.addEventListener('click', function (event) {
 
             pointer.x = ((event.clientX - getBoundingClientRect.left) / item.offsetWidth) * 2 - 1;
@@ -392,13 +467,18 @@ export default class ThreeJs {
             if (intersects.length > 0) {
                 //alert(intersects[0].object.name);
                 console.log(intersects[0].object);
+                for ( var i = 0; i < intersects.length; i++ ) {
+
+                    intersects[i].object.material.color.set(0xff0000);
+                
+                }
 
             } else {
                 //若没有几何体被监听到，可以做一些取消操作
             }
-
+            
         }, false);
-
+        // this.checkRaycaster()
     }
     setText() {
 
@@ -425,10 +505,75 @@ export default class ThreeJs {
         sprite.position.y = 30;
         this.scene.add(sprite);
     }
+    checkRaycaster(){
+        const raycaster=new THREE.Raycaster()
+        //射线原点
+        const rayOrigin =this.camera.position.clone();
+        console.log(rayOrigin)
+        //射线方向
+        const rayDirection =new THREE.Vector3(0,100,300)
+        // //将该向量的方向设置为和原向量相同，但是其长度
+        var direction = rayDirection.sub(rayOrigin).normalize()
+        console.log(direction)
+        raycaster.set(rayOrigin, direction)
+        raycaster.far=210;
+        const intersect=raycaster.intersectObject(this.scene.children,true)
+        // console.log(intersect)
+    }
+    updateCamera(){
+        // 键盘上下左右键控制相机向前后左右运动
+        if (this.direction.top) {
+            this.camera.translateZ(-this.moveSpeed)
+        }
+        if (this.direction.down) {
+            this.camera.translateZ(this.moveSpeed)
+        }
+        if (this.direction.left) {
+            this.camera.translateX(-this.moveSpeed)
+        }
+        if (this.direction.right) {
+            this.camera.translateX(this.moveSpeed);
+        }
+        // 相机左右旋转
+        if (this.direction.cleft) {
+            this.camera.rotateY(this.cameraSpeed);
+        }
+        if (this.direction.cright) {
+            this.camera.rotateY(-this.cameraSpeed);
+        }
+    }
     render() {
         const delta = this.clock.getDelta() //获取自上次调用的时间差
-        this.firstPersonControls.update(delta) //更新第一人称控件
+        // this.firstPersonControls.update(delta) //更新第一人称控件
         this.renderer.render(this.scene, this.camera);
+        // 更新动画帧
+        if(this.mixer){
+            this.mixer.update(delta);
+        }
+
+
+        //更新镜头
+        this.updateCamera();
+
+
+        //更新人物坐标
+        const relativeCameraOffset = new THREE.Vector3(0, -30, -50);
+        const cameraOffset = relativeCameraOffset.applyMatrix4(
+            this.camera.matrixWorld
+        );
+        if (this.author) {
+           this.author.rotation.y = Math.PI + this.camera.rotation.y;
+           this.author.position.x = cameraOffset.x;
+           this.author.position.y = cameraOffset.y;
+           this.author.position.z = cameraOffset.z-10;
+             // 始终让相机看向物体
+            this.camera.target =this.author.position;
+        }
+        
+        
+       
+
+
         requestAnimationFrame(this.render.bind(this))
     }
 
