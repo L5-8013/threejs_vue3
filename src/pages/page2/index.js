@@ -14,6 +14,9 @@ import {
 //加载glb模型
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader";
 
+// 界面控制器
+import TouchControls from "@/tool/controls/TouchControls.js";
+
 export default class ThreeJs {
     constructor(item) {
         this.init(item);
@@ -28,6 +31,7 @@ export default class ThreeJs {
         this.moveSpeed=1;
         this.cameraSpeed=0.01;
         this.author=null;
+        this.controls=null;
 
 
 
@@ -41,7 +45,9 @@ export default class ThreeJs {
         this.setHouse();
         this.setLight();
         this.setOther();
+        // this.initControl(item);
         this.setControls();
+        
         this.setClick(item);
         this.setText();
         this.render();
@@ -445,6 +451,26 @@ export default class ThreeJs {
             keyFun(event.keyCode,false)
         }, false);
     }
+    initControl(item){
+        //   第一人称锁定控制
+        // Controls
+        let options = {
+            delta: 0.75, // coefficient of movement
+            moveSpeed: 0.2, // speed of movement
+            rotationSpeed: 0.005, // coefficient of rotation
+            maxPitch: 0, // max camera pitch angle
+            hitTest: true, // stop on hitting objects
+            hitTestDistance: 5, // distance to test for hit
+        };
+        this.controls = new TouchControls(
+            item.parentNode,
+            this.camera,
+            options,
+            this.author
+        );
+        this.controls.setPosition(0, 3, 0);
+        this.controls.addToScene(this.scene);
+    }
     setClick(item) {
         let _this = this;
         let intersects = []; //几何体合集
@@ -522,17 +548,22 @@ export default class ThreeJs {
     }
     updateCamera(){
         // 键盘上下左右键控制相机向前后左右运动
+
         if (this.direction.top) {
             this.camera.translateZ(-this.moveSpeed)
+            this.animation('Walking')
         }
         if (this.direction.down) {
             this.camera.translateZ(this.moveSpeed)
+            this.animation('Jumping')
         }
         if (this.direction.left) {
             this.camera.translateX(-this.moveSpeed)
+            this.animation('TurnLeft')
         }
         if (this.direction.right) {
             this.camera.translateX(this.moveSpeed);
+            this.animation('TurnRight')
         }
         // 相机左右旋转
         if (this.direction.cleft) {
@@ -540,6 +571,27 @@ export default class ThreeJs {
         }
         if (this.direction.cright) {
             this.camera.rotateY(-this.cameraSpeed);
+        }
+
+
+        if(!this.direction.top && !this.direction.down && !this.direction.left && !this.direction.left && !this.direction.right){
+            this.animation('Standing')
+        }
+
+    }
+    animation(name){
+        this.previousAction = this.currentAction;
+        // 传入动作
+        this.currentAction = this.stateList[name];
+        //
+        if (this.previousAction !== this.currentAction) {
+            this.previousAction.fadeOut(0.5);
+            this.currentAction
+            .reset()
+            .setEffectiveTimeScale(1)
+            .setEffectiveWeight(1)
+            .fadeIn(0.5)
+            .play();
         }
     }
     render() {
