@@ -513,7 +513,7 @@ export default class ThreeJs {
         ctx.fillStyle = "rgb(255,0,0)";
         ctx.font = "bolder 16px Arial ";
 
-        ctx.fillText("小杜的房间", 0, 16);
+        ctx.fillText("房间05", 0, 16);
         ctx.globalAlpha = 1;
 
         /// canvas画布对象作为CanvasTexture的参数重建一个纹理对象
